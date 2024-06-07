@@ -1,13 +1,196 @@
+---
+title: 如何从0到1实现这个文档网站
+---
+# 如何从0到1实现这个文档网站
+
+前提说明，该项目使用的是 GitHub Pages 并部署到 https://followzero.github.io/mydocs/ 上的。则需要在 VitePress 配置中将 base 选项设置为 '/mydocs/'。
+
+这是一个独立的 VitePress 站点，可以在当前目录 (./) 中搭建站点。
+
+那么静态资源 public 目录将是 ./public。public/icon.png 在源代码中使用 /icon.png 引用。
+
+## 安装 VitePress
+
+VitePress 可以单独使用，也可以安装到现有项目中。在这两种情况下，都可以使用以下方式安装它：
+
+::: code-group
+
+```sh [pnpm]
+pnpm add -D vitepress
+```
+```sh [npm]
+npm add -D vitepress
+```
+:::
+
+通过运行以下命令启动向导：
+
+::: code-group
+
+```sh [pnpm]
+pnpm vitepress init
+```
+```sh [npm]
+npx vitepress init
+```
+:::
+
+```sh
+┌  Welcome to VitePress!
+│
+◇  Where should VitePress initialize the config?
+│  ./
+│
+◇  Site title:
+│  我的文档站
+│
+◇  Site description:
+│  我的文档站
+│
+◇  Theme:
+│  Default Theme + Customization
+│
+◇  Use TypeScript for config and theme files?
+│  Yes
+│
+◇  Add VitePress npm scripts to package.json?
+│  Yes
+│
+└  Done! Now run pnpm run docs:dev and start writing.
+
+Tips:
+- Since you've chosen to customize the theme, you should also explicitly install vue as a dev dependency.
+```
+
+docs:dev 脚本将启动具有即时热更新的本地开发服务器。使用以下命令运行它：
+
+```sh
+ pnpm run docs:dev
+```
+
+可以运行以下命令来构建文档：
+
+```sh
+pnpm run docs:build
+```
+
+构建文档后，通过运行以下命令可以在本地预览它：
+
+```sh
+pnpm run docs:preview
+```
+## 部署到 GitHub Pages
+
+稍微吐槽下，之前是在 gitee pages 。但是有天突然不能用了。我感觉是不是现在的静态站点生成器 (SSG)太牛了。他们是不是感觉有压力或有利可图就想这改变下 pages 的使用规则，希望是我以小人之心度君子之腹了。
+
+在 github 项目中点 Settings->Pages 在 Build and deployment 的 Source 项，选择 GitHub Acitons
+
+然后点 create your own 创建自己的工作流程
+
+这会在项目的 .github/workflows 目录中创建一个名为 deploy.yml (可自定义命名为 deploy_vite.yml) 的文件，其中包含这样的内容(使用 pnpm)：
+
+```yml
+# 构建 VitePress 站点并将其部署到 GitHub Pages 的示例工作流程
+#
+name: Deploy VitePress site to Pages
+
+on:
+  # 在针对 `main` 分支的推送上运行。如果你
+  # 使用 `master` 分支作为默认分支，请将其更改为 `master`
+  push:
+    branches: [main]
+
+  # 允许你从 Actions 选项卡手动运行此工作流程
+  workflow_dispatch:
+
+# 设置 GITHUB_TOKEN 的权限，以允许部署到 GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 只允许同时进行一次部署，跳过正在运行和最新队列之间的运行队列
+# 但是，不要取消正在进行的运行，因为我们希望允许这些生产部署完成
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  # 构建工作
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # 如果未启用 lastUpdated，则不需要
+      - uses: pnpm/action-setup@v3 # 如果使用 pnpm，请取消注释
+      # - uses: oven-sh/setup-bun@v1 # 如果使用 Bun，请取消注释
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm # 或 pnpm / yarn
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+      - name: Install dependencies
+        run: pnpm install # 或 pnpm install / yarn install / bun install
+      - name: Build with VitePress
+        run: pnpm docs:build # 或 pnpm docs:build / yarn docs:build / bun run docs:build
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./.vitepress/dist
+
+  # 部署工作
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    needs: build
+    runs-on: ubuntu-latest
+    name: Deploy
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+```
+::: tip
+Error: No pnpm version is specified. Please specify it by one of the following ways: - in the GitHub Action config with the key "version" - in the package.json with the key "packageManager"
+
+我的再 build 的时候有以上错误提示要设置 pnpm 的版本，有两种方法，我选择了其中一种
+
+package.json 中添加了 packageManager
+
+```json
+// package.json
+"packageManager": "pnpm@9.1.1",
+```
+:::
+
+## 页面装修
+
+### 配置文件 
+
+(.vitepress/config.mts) 让你能够自定义 VitePress 站点的各个方面，最基本的选项是站点的标题和描述：
+
+```ts
+// 原始配置文件
+// .vitepress/config.mts
 import { defineConfig } from 'vitepress'
-import { nav } from './configs'
+
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
-  title: "我的文档站",
+  title: "my docs",
   description: "我的文档站",
   base: '/mydocs/',
   themeConfig: {
     // https://vitepress.dev/reference/default-theme-config
-    nav:nav,
+    nav: [
+      { text: 'Home', link: '/' },
+      { text: 'Examples', link: '/markdown-examples' }
+    ],
 
     sidebar: [
       {
@@ -20,6 +203,87 @@ export default defineConfig({
     ],
 
     socialLinks: [
+      { icon: 'github', link: 'https://github.com/vuejs/vitepress' }
+    ]
+  }
+})
+```
+### 顶部导航
+
+随着内容的增多，顶部导航单独写到一个配置文件，默认配置文件引入。
+
++ 在 .vitepress 文件夹下创建 cofings 文件夹，在 configs 文件夹下创建 index.ts 和 nav.ts 文件
+
+```ts
+//index.ts
+export * from './nav'
+```
+
+```ts
+// nav.ts
+import type { DefaultTheme } from 'vitepress'
+
+export const nav: DefaultTheme.Config['nav'] = [
+  { text: '首页', link: '/' },
+  { text: '导航', link: '/nav' },
+  { text: '博客', link: '/blog/' },
+  { text: '标签', link: '/tags' },
+  { text: '归档', link: '/archives' },
+  {
+    text: '手册',
+    items:[
+      {
+        items: [
+          { text: 'Liunx', link: '/guide/liunx/' },
+          { text: 'Docker', link: '/guide/docker/' }
+        ]
+      },
+      {
+        items: [
+          { text: 'PHP', link: '/guide/php/' },
+        ]
+      },
+      {
+        items: [
+          { text: 'Mysql', link: '/guide/mysql/' },
+        ]
+      },
+      {
+        text:'黑马程序员学习',
+        items: [
+          { text: '小兔鲜', link: '/guide/xiaotuxian/' },
+        ]
+      }
+    ]
+  },
+  { text: '问题', link: '/blog/qipa/' },
+  { text: 'ToDo', link: '/todo/' },
+  { text: '其他', link: '/blog/other/' },
+]
+```
+
++ 在 .vitepress/config.mts 中引入
+
+```ts
+//.vitepress/config.mts
+...
+import { nav } from './configs'
+...
+themeConfig: {
+  ...
+  nav:nav,
+  ...
+}
+...
+```
+### 修改社交链接
+
+```ts
+//.vitepress/config.mts
+...
+themeConfig: {
+  ...
+  socialLinks: [
       {
         icon: {
           svg: '<svg t="1676025513460" class="icon" viewBox="0 0 1129 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="2745" width="200" height="200"><path d="M234.909 9.656a80.468 80.468 0 0 1 68.398 0 167.374 167.374 0 0 1 41.843 30.578l160.937 140.82h115.07l160.936-140.82a168.983 168.983 0 0 1 41.843-30.578A80.468 80.468 0 0 1 930.96 76.445a80.468 80.468 0 0 1-17.703 53.914 449.818 449.818 0 0 1-35.406 32.187 232.553 232.553 0 0 1-22.531 18.508h100.585a170.593 170.593 0 0 1 118.289 53.109 171.397 171.397 0 0 1 53.914 118.288v462.693a325.897 325.897 0 0 1-4.024 70.007 178.64 178.64 0 0 1-80.468 112.656 173.007 173.007 0 0 1-92.539 25.75h-738.7a341.186 341.186 0 0 1-72.421-4.024A177.835 177.835 0 0 1 28.91 939.065a172.202 172.202 0 0 1-27.36-92.539V388.662a360.498 360.498 0 0 1 0-66.789A177.03 177.03 0 0 1 162.487 178.64h105.414c-16.899-12.07-31.383-26.555-46.672-39.43a80.468 80.468 0 0 1-25.75-65.984 80.468 80.468 0 0 1 39.43-63.57M216.4 321.873a80.468 80.468 0 0 0-63.57 57.937 108.632 108.632 0 0 0 0 30.578v380.615a80.468 80.468 0 0 0 55.523 80.469 106.218 106.218 0 0 0 34.601 5.632h654.208a80.468 80.468 0 0 0 76.444-47.476 112.656 112.656 0 0 0 8.047-53.109v-354.06a135.187 135.187 0 0 0 0-38.625 80.468 80.468 0 0 0-52.304-54.719 129.554 129.554 0 0 0-49.89-7.242H254.22a268.764 268.764 0 0 0-37.82 0z m0 0" fill="#20B0E3" p-id="2746"></path><path d="M348.369 447.404a80.468 80.468 0 0 1 55.523 18.507 80.468 80.468 0 0 1 28.164 59.547v80.468a80.468 80.468 0 0 1-16.094 51.5 80.468 80.468 0 0 1-131.968-9.656 104.609 104.609 0 0 1-10.46-54.719v-80.468a80.468 80.468 0 0 1 70.007-67.593z m416.02 0a80.468 80.468 0 0 1 86.102 75.64v80.468a94.148 94.148 0 0 1-12.07 53.11 80.468 80.468 0 0 1-132.773 0 95.757 95.757 0 0 1-12.875-57.133V519.02a80.468 80.468 0 0 1 70.007-70.812z m0 0" fill="#20B0E3" p-id="2747"></path></svg>',
@@ -38,5 +302,60 @@ export default defineConfig({
       },
       { icon: 'github', link: 'https://github.com/FollowZero' }
     ],
-  }
-})
+  ...
+}
+...
+```
+
+### 修改首页
+
+参考 [默认主题->主页](https://vitepress.dev/zh/reference/default-theme-home-page)
+
+```md
+---
+# https://vitepress.dev/reference/default-theme-home-page
+layout: home
+
+hero:
+  name: "郑州最帅的PHP程序员"
+  text: "我的文档站"
+  tagline: 做网站找我哦 接任何开发 仿站 官网建设 功能网站 网站二开 小程序 APP
+  image:
+      src: /php.png
+      alt: 计廷科技
+  actions:
+    - theme: brand
+      text: 关于
+      link: /blog/about
+    - theme: alt
+      text: 导航
+      link: /nav
+
+features:
+  - icon:
+      src: /blog.svg
+    title: 博客
+    details: 记录一些想记录的事。
+    link: /blog
+  - icon:
+      src: /guide.svg
+    title: 手册
+    details: 跟着学习时的手册文档。方便工作时查找。
+    link: /guide
+  - icon:
+      src: /qipa.svg
+    title: 问题
+    details: 一些奇葩的问题，有可能是很低级的错误。
+    link: /blog/qipa
+  - icon:
+      src: /todo.svg
+    title: ToDo
+    details: 想要做的事，该去做的事，立个flag就去做。
+    link: /todo/
+  - icon:
+      src: /other.svg
+    title: 其他
+    details: 其他就是其他的了。
+    link: /blog/other  
+---
+```
