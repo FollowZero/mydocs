@@ -307,6 +307,55 @@ themeConfig: {
 ...
 ```
 
+### 其他配置 
+
+#### [logo](https://vitepress.dev/zh/reference/default-theme-config#logo)
+
+导航栏上显示的 Logo，位于站点标题前。可以接受一个路径字符串，或者一个对象来设置在浅色/深色模式下不同的 Logo。
+
+#### [搜索](https://vitepress.dev/zh/reference/default-theme-search)
+
+这里直接使用了 vitepress 的本地搜索
+
+#### [docFooter](https://vitepress.dev/zh/reference/default-theme-config#docfooter)
+
+可用于自定义出现在上一页和下一页链接上方的文本。如果不是用英语编写文档，这很有帮助。也可用于全局禁用上一页/下一页链接。如果想有选择地启用/禁用上一个/下一个链接，可以使用 [frontmatter](https://vitepress.dev/zh/reference/default-theme-prev-next-links)。
+
+```ts
+// .vitepress/config.mts
+
+export default defineConfig({
+  themeConfig: {
+    //
+    logo: '/jt.svg',
+    search: {
+      provider: 'local',
+      options: {
+        translations: {
+          button: {
+            buttonText: '搜索文档',
+            buttonAriaLabel: '搜索文档'
+          },
+          modal: {
+            noResultsText: '无法找到相关结果',
+            resetButtonTitle: '清除查询条件',
+            footer: {
+              selectText: '选择',
+              navigateText: '切换',
+              closeText:'关闭'
+            }
+          }
+        }
+      }
+    },
+    docFooter: {
+      prev: '上一篇',
+      next: '下一篇',
+    }
+  }
+})
+```
+
 ### 修改首页
 
 参考 [默认主题->主页](https://vitepress.dev/zh/reference/default-theme-home-page)
