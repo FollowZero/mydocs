@@ -406,3 +406,71 @@ features:
     link: /blog/other  
 ---
 ```
+
+## 导航
+导航模块参考[茂茂物语](https://github.com/maomao1996/mm-notes)
+
+### 因为是 ts 项目，声明导航相关的 ts 类型
+
+```ts
+
+// .vitepress/types.ts
+
+export interface NavLink {
+  /** 站点图标 */
+  icon?: string | { svg: string }
+  badge?:
+    | string
+    | {
+        text?: string
+        type?: 'info' | 'tip' | 'warning' | 'danger'
+      }
+  /** 站点名称 */
+  title: string
+  /** 站点名称 */
+  desc?: string
+  /** 站点链接 */
+  link: string
+}
+
+export interface NavData {
+  title: string
+  items: NavLink[]
+}
+
+
+```
+
+### 创建 ./nav.md 文件
+### 添加 ./nav/data.ts    导航的数据
+### 添加 ./nav/index.scss 导航的样式
+### 添加 .vitepress/theme/components/MNavLinks.vue 组件
+### 添加 .vitepress/theme/components/MNavLink.vue 组件
+
+### 引入相关组件
+
+```ts
+// .vitepress/theme/index.ts
+
+// ...
+import MNavLinks from './components/MNavLinks.vue'
+
+export default {
+  //...
+  enhanceApp({ app, router, siteData }) {
+    // ...
+    app.component('MNavLinks', MNavLinks)
+  }
+} satisfies Theme
+
+
+```
+
+### 执行命令安装相关依赖
+
+```
+pnpm add -D sass
+
+pnpm install @mdit-vue/shared
+
+```
